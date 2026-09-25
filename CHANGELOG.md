@@ -1,3 +1,7 @@
+# v0.1.1
+
+Correct version reporting for installations made with `go install`. Release archives continue to embed their exact version and commit.
+
 # v0.1.0
 
 Initial Runivo CLI release for Windows, macOS and Linux (amd64 and arm64).
