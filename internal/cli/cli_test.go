@@ -228,3 +228,84 @@ func TestDownloadIntegrityAndNoOverwrite(t *testing.T) {
 		t.Fatal("overwrote output")
 	}
 }
+
+func TestMutationsFollowCoreIdempotencyContract(t *testing.T) {
+	root := "/api/v1/workspaces/" + workspaceID
+	for _, path := range []string{"/projects", "/services", "/services/" + serviceID + "/actions", "/services/" + serviceID + "/deploys/" + deployID + "/rollback", "/services/" + serviceID + "/variables"} {
+		key := idempotencyKey("POST", root+path, map[string]any{"requestId": "same-request"})
+		if key != "same-request" {
+			t.Errorf("body/header request ID mismatch for %s: %s", path, key)
+		}
+		if idempotencyKey("POST", root+path, nil) == "" {
+			t.Errorf("no retry receipt for %s", path)
+		}
+	}
+	for _, path := range []string{"/environments", "/integrations", "/blueprints", "/services/" + serviceID + "/backups", "/services/" + serviceID + "/terminal", "/services/" + serviceID + "/runs", "/services/" + serviceID + "/domains", "/services/" + serviceID + "/variables/" + deployID + "/reveal"} {
+		if key := idempotencyKey("POST", root+path, map[string]any{"requestId": "job-id"}); key != "" {
+			t.Errorf("unsupported header on %s", path)
+		}
+	}
+	if idempotencyKey("GET", root+"/services", nil) != "" {
+		t.Error("GET cannot have a mutation receipt")
+	}
+}
+
+func TestResumeSendsMatchingHeaderAndBodyRequestID(t *testing.T) {
+	run, _ := harness(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "GET" {
+			services(w)
+			return
+		}
+		var body map[string]any
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		if body["requestId"] != r.Header.Get("Idempotency-Key") {
+			t.Error("mismatched idempotency values")
+		}
+		_, _ = io.WriteString(w, `{"queued":true}`)
+	})
+	if code, _, err := run("resume", "--service", "app", "--yes", "--json"); code != 0 {
+		t.Fatal(err)
+	}
+}
+
+func TestBackupCreationDoesNotSendUnsupportedHeader(t *testing.T) {
+	run, _ := harness(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "GET" {
+			services(w)
+			return
+		}
+		if r.Header.Get("Idempotency-Key") != "" {
+			t.Error("backup endpoint rejects this header")
+		}
+		var body map[string]any
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		if !validID(str(body["requestId"])) {
+			t.Error("backup request ID missing")
+		}
+		_, _ = io.WriteString(w, `{"backup":{"id":"`+deployID+`"}}`)
+	})
+	if code, _, err := run("backups", "create", "--service", "app", "--json"); code != 0 {
+		t.Fatal(err)
+	}
+}
+
+func TestJobRunUsesItsOwnRequestIDWithoutReceiptHeader(t *testing.T) {
+	run, _ := harness(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "GET" {
+			services(w)
+			return
+		}
+		if !strings.HasSuffix(r.URL.Path, "/runs") || r.Header.Get("Idempotency-Key") != "" {
+			t.Error("unexpected job request or unsupported receipt header")
+		}
+		var body map[string]any
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		if !validID(str(body["requestId"])) || body["command"] != "echo hello" {
+			t.Error("job command or request ID missing")
+		}
+		_, _ = io.WriteString(w, `{"run":{"id":"`+deployID+`","status":"queued"}}`)
+	})
+	if code, _, err := run("jobs", "run", "--service", "app", "--command", "echo hello", "--yes", "--json"); code != 0 {
+		t.Fatal(err)
+	}
+}

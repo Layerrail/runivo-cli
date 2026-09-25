@@ -1,3 +1,9 @@
+# v0.1.2
+
+Keep CLI writes compatible with the current Runivo API's idempotency contract. Send receipt headers only to supported core endpoints and reuse a command's body request ID in its header. This fixes rejected restart, suspend, resume and rollback requests, along with writes to endpoints that do not accept receipt headers.
+
+Live acceptance covered a repository build through HTTP health verification, deployment logs, suspension and a checksummed PostgreSQL backup download. Interactive shell execution and restoration into a new database still require paid-instance acceptance testing; see [verification details](docs/verification.md).
+
 # v0.1.1
 
 Correct version reporting for installations made with `go install`. Release archives continue to embed their exact version and commit.

@@ -402,7 +402,7 @@ func (a *app) jobsCommand() *cobra.Command {
 			body["command"] = command
 		}
 		var response map[string]any
-		if e = a.client.Do(c.Context(), "POST", a.path(base+"/runs"), body, &response, str(body["requestId"])); e != nil {
+		if e = a.client.Do(c.Context(), "POST", a.path(base+"/runs"), body, &response, ""); e != nil {
 			return e
 		}
 		if !wait {

@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	"text/tabwriter"
@@ -218,14 +219,31 @@ func (a *app) path(s string) string {
 }
 func (a *app) call(c *cobra.Command, method, path string, body any) error {
 	var result any
-	id := ""
-	if method != "GET" {
-		id = requestID()
-	}
+	id := idempotencyKey(method, path, body)
 	if err := a.client.Do(c.Context(), method, path, body, &result, id); err != nil {
 		return err
 	}
 	return a.print(result)
+}
+
+// Only the API's documented core mutations accept idempotency headers. Other
+// operations (including terminals and backup jobs) have their own request IDs.
+var receiptPath = regexp.MustCompile(`^/api/v1/workspaces/[0-9a-fA-F-]{36}/(?:projects(?:/[0-9a-fA-F-]{36})?|services(?:/[0-9a-fA-F-]{36}(?:/(?:archive|restore|actions))?)?|services/[0-9a-fA-F-]{36}/(?:variables|secret-files)(?:/[0-9a-fA-F-]{36})?|env-groups/[0-9a-fA-F-]{36}/variables(?:/[0-9a-fA-F-]{36})?|services/[0-9a-fA-F-]{36}/deploys(?:/[0-9a-fA-F-]{36}/(?:cancel|rollback))?)$`)
+
+func idempotencyKey(method, path string, body any) string {
+	if method != "POST" && method != "PATCH" && method != "DELETE" {
+		return ""
+	}
+	u, err := url.Parse(path)
+	if err != nil || !receiptPath.MatchString(u.Path) {
+		return ""
+	}
+	if values, ok := body.(map[string]any); ok {
+		if key, ok := values["requestId"].(string); ok && key != "" {
+			return key
+		}
+	}
+	return requestID()
 }
 func (a *app) print(v any) error {
 	enc := json.NewEncoder(a.out)
