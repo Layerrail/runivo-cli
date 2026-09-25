@@ -27,6 +27,8 @@ The validation workspace has no confirmed live payment method or accepted paid c
 
 The tests above confirmed the paid-feature boundaries. They did not bypass them or exercise successful shell execution/database restoration.
 
+Inspection of the current backend also found a restore checkout gap: its restore endpoint creates a new target and immediately queues deployment, while live paid compute requires browser approval for that specific target. Rejection rolls the target creation back, so merely adding a card or approving the source database does not complete this flow. A consent-aware target preparation/checkout/resume flow is needed before the CLI can validate a successful paid restore. The CLI cannot grant that approval or bypass it.
+
 ## Initial release verification
 
 Verified on September 25, 2026 against the live Runivo control-plane API.
