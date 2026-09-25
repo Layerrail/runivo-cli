@@ -1,0 +1,11 @@
+.local/
+dist/
+coverage.out
+/runivo.exe
+/runivo
+.env
+*.key
+*.pem
+*.test
+runivo.toml
+!examples/runivo.toml

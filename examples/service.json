@@ -1,0 +1,13 @@
+{
+  "name": "my-web-app",
+  "kind": "web",
+  "configuration": {
+    "repository": "your-org/your-repository",
+    "branch": "main",
+    "runtime": "auto",
+    "buildMethod": "railpack",
+    "plan": "free",
+    "autoDeploy": "off",
+    "healthCheckPath": "/health"
+  }
+}
