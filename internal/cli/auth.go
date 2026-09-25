@@ -129,6 +129,12 @@ func (a *app) authCommands() []*cobra.Command {
 		if err = client.Do(c.Context(), "GET", "/api/v1/cli/session", nil, &current, ""); err != nil {
 			return err
 		}
+		if !validID(current.Workspace.ID) || !validID(current.KeyID) {
+			return errors.New("Runivo returned an invalid workspace or credential identity")
+		}
+		if readOnly && current.Scope != "read" {
+			return errors.New("the imported API key is not read-only; create a read-only key in the dashboard")
+		}
 		p := config.Profile{APIURL: client.BaseURL, Workspace: current.Workspace.ID, Name: current.Workspace.Name, Scope: current.Scope, KeyID: current.KeyID}
 		name := a.profile
 		if name == "" {

@@ -103,11 +103,11 @@ func (c *Client) Request(ctx context.Context, method, path string, body any, ide
 	}
 	_ = json.Unmarshal(raw, &payload)
 	e := &Error{Status: response.StatusCode, Code: payload.Error, RetryAfter: response.Header.Get("Retry-After"), Message: fmt.Sprintf("Runivo returned HTTP %d", response.StatusCode)}
-	if len(payload.Errors) > 0 {
+	if payload.Error != "" {
+		e.Message = payload.Error
+	} else if len(payload.Errors) > 0 {
 		e.Message = payload.Errors[0].Message
 		e.Code = payload.Errors[0].Code
-	} else if payload.Error != "" {
-		e.Message = payload.Error
 	}
 	if response.StatusCode >= 300 && response.StatusCode < 400 {
 		e.Message = "Runivo returned a redirect; credentials were not forwarded. Check your API URL"

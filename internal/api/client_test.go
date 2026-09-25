@@ -68,3 +68,17 @@ func TestCancellation(t *testing.T) {
 		t.Fatal(e)
 	}
 }
+
+func TestDeviceOAuthCodeSurvivesNormalizedErrorEnvelope(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(400)
+		_, _ = w.Write([]byte(`{"error":"authorization_pending","errors":[{"message":"Provide valid values","code":"invalid_request"}]}`))
+	}))
+	defer server.Close()
+	client, _ := New(server.URL, "", "test")
+	err := client.Do(context.Background(), "POST", "/api/v1/cli/token", nil, nil, "")
+	var failure *Error
+	if !errors.As(err, &failure) || failure.Code != "authorization_pending" {
+		t.Fatalf("lost OAuth state: %v", err)
+	}
+}
