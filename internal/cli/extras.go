@@ -142,7 +142,7 @@ func (a *app) backupsCommand() *cobra.Command {
 	}})
 	for _, action := range []string{"delete", "restore", "download"} {
 		action := action
-		var name, out string
+		var name, out, plan string
 		var timeout time.Duration
 		c := &cobra.Command{Use: action + " ID", Short: action + " a database backup", Args: cobra.ExactArgs(1), RunE: func(c *cobra.Command, args []string) error {
 			base, s, e := a.servicePath(c)
@@ -160,7 +160,10 @@ func (a *app) backupsCommand() *cobra.Command {
 					if name == "" {
 						return errors.New("--name is required for the new database service")
 					}
-					message = "Restore into a new database service? Its plan and storage charges apply."
+					if plan != "" {
+						body["plan"] = plan
+					}
+					message = "Restore into a new database service? Free capacity limits apply; paid plans require checkout."
 				}
 				if e = a.confirm(message); e != nil {
 					return e
@@ -229,6 +232,9 @@ func (a *app) backupsCommand() *cobra.Command {
 			}
 		}}
 		c.Flags().StringVar(&name, "name", "", "Name of the new database service (restore only)")
+		if action == "restore" {
+			c.Flags().StringVar(&plan, "plan", "", "Recovery plan ID; defaults to the source plan")
+		}
 		c.Flags().StringVar(&out, "output", "", "New output file (download only)")
 		c.Flags().DurationVar(&timeout, "timeout", 30*time.Minute, "Export/download timeout")
 		parent.AddCommand(c)

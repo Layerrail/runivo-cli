@@ -1,3 +1,7 @@
+# Unreleased
+
+MySQL creation supports `--plan mysql-free` and defaults to Free when no plan is supplied. Backup restoration accepts `--plan` so customers can explicitly select a paid recovery instance when their workspace's free MySQL slot is occupied. Selecting a paid target still requires checkout in the dashboard.
+
 # v0.1.2
 
 Keep CLI writes compatible with the current Runivo API's idempotency contract. Send receipt headers only to supported core endpoints and reuse a command's body request ID in its header. This fixes rejected restart, suspend, resume and rollback requests, along with writes to endpoints that do not accept receipt headers.
