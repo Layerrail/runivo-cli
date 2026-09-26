@@ -176,7 +176,7 @@ func (a *app) resourceCommand(s resource) *cobra.Command {
 			command.Flags().StringVar(&name, "name", "", "Resource name")
 		}
 		if s.name == "services" && action != "delete" {
-			command.Flags().StringVar(&kind, "type", "", "Service kind from runivo catalog (web, static, private, worker, cron, postgres, redis)")
+			command.Flags().StringVar(&kind, "type", "", "Service kind from runivo catalog (web, static, private, worker, cron, postgres, mysql, redis)")
 			command.Flags().StringVar(&repo, "repo", "", "GitHub repository")
 			command.Flags().StringVar(&branch, "branch", "", "Git branch")
 			command.Flags().StringVar(&plan, "plan", "", "Service plan ID")
